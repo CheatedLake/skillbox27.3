@@ -119,6 +119,11 @@ int main() {
 //    newDirector.printDebug(company);  // <- this wil show status of all company
   }
   std::cout << "Great! Everyone has job now!" << std::endl;
+  //cleaner
+  for (Worker* manager : company) {
+    delete manager;
+    manager = nullptr;
+  }
   return 0;
 }
 
