@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
-#include <cassert>
+//#include <cassert>
+#include <ctime>
 
 class Worker {
 public:
@@ -8,25 +9,45 @@ public:
   Worker(Worker* _parent, int _teamSize) : m_parentID(_parent) { //_parent == nullptr? manager : worker
 //    assert(_parent != 0 && _teamSize == 0);
     if (_parent == 0 && _teamSize > 0) {
-      m_ID = m_IDgenerator++;
-      m_team.reserve(_teamSize);
+      m_ID = m_IDgenerator++;         // next manager will get unique ID
+      m_team.reserve(_teamSize);   // set capacity once
+      freeWorkers = _teamSize;        // init free workers counter
     }
   };
   void occupyWorkers() {
     int cap = m_team.capacity();
+    // fill team with new workers by team capacity
     for (int i = 0; i < cap; ++i) {
       Worker* worker = new Worker(this, 0);
       m_team.push_back(worker);
-      std::cout << "Add employer " << worker << std::endl;
     }
-
   };
 
-  void getDebugInfo() {
+  void getDebugInfo() const {
+    // delete on release
     std::cout << "Root member: " << this << " with ID " << m_ID << " has " << m_team.size() << " childs" << std::endl;
     for (const Worker* item : m_team) {
-      std::cout << "Child " << item << " has ID " << item->m_ID << " with parent " << item->m_parentID << std::endl;
+      std::cout << "Child " << item << " has ID " << item->m_ID << " and job " << item->jobType << std::endl;
     }
+  }
+
+  void setTasks(int _id) {
+    std::srand(m_ID + _id);   //get unique rand() grain
+    int taskCounter = rand() % m_team.size() + 1;
+    for (auto worker : m_team) {  //jobs no more than workers, so I choose this way
+      if (worker->jobType != '0')
+        continue;
+      if (taskCounter != 0) {
+        int type = rand() % 3 + 1;
+        worker->jobType = (type == 1) ? 'A' : (type == 2) ? 'B' : 'C';
+        --freeWorkers;
+        --taskCounter;  //its easier to track here than calc each time
+      }
+    }
+  }
+
+  int getFreeWorkers() const {
+    return freeWorkers;
   }
 
   ~Worker() {
@@ -37,31 +58,67 @@ public:
   }
 
 private:
-  Worker* m_parentID = nullptr;
-  int m_ID = 0;
-  std::vector<Worker*> m_team;
+  Worker* m_parentID = nullptr;   // nullptr means it is manager
+  int m_ID = 0;                   // manager has unique ID, worker has 0
+  std::vector<Worker*> m_team;    // our team
+  int freeWorkers = 0;            // easy way to getFreeWorkers()
+  char jobType = '0';             // '0' - free, also can be 'A','B','C'
 };
 
-int Worker::m_IDgenerator = 1;
+class Director{     // class to manage jobs for company
+public:
+  bool isEveryoneWork(const std::vector<Worker*> _company) {
+    int result = 0;
+    for (Worker* team : _company) {
+      result += team->getFreeWorkers();   // 'get' because director not a friend(class) for workers :)
+    }
+    return result == 0;
+  }
+
+  void setJob(std::vector<Worker*> _company, int _id) {
+    // I think EVERY command nave to be sent to EVERY manager (maybe its not, not clear from task's condition)
+    for (Worker* team : _company) {
+      team->setTasks(_id);
+    }
+  }
+
+  void printDebug(std::vector<Worker*> _company) {
+    // delete on release
+    for (auto &item: _company) {
+      item->getDebugInfo();
+    }
+  }
+};
+
+int Worker::m_IDgenerator = 1;  //each manager (parent = nullptr) wil increase value to get unique ID of Worker exampl
 
 int main() {
+  std::srand(std::time(nullptr));
   std::vector<Worker*> company;
-  std::cout << "Welcome! Enter number of work teams:";
+  std::cout << "Hi! Let's create new company. Enter number of work teams:";
   int teams = 0;
   std::cin >> teams;
   for (int i = 0; i < teams; ++i) {
     std::cout << "Enter number of workers in team " << i+1 << "/" << teams << ": ";
     int workers = 0;
     std::cin >> workers;
-    //init team (equal 'manager')
+    //init team (equal 'manager with team')
     Worker* newWorker = new Worker(nullptr, workers);
     newWorker->occupyWorkers();
     company.push_back(newWorker);
   }
 
-  for (auto& item : company) {
-    item->getDebugInfo();
+  // init director to manage company
+  Director newDirector;
+  std::cout << "Welcome new director!" << std::endl;
+  while (!newDirector.isEveryoneWork(company)) {
+    std::cout << "Enter director's command to process: ";
+    int command = 0;
+    std::cin >> command;
+    newDirector.setJob(company, command);
+//    newDirector.printDebug(company);  // <- this wil show status of all company
   }
+  std::cout << "Great! Everyone has job now!" << std::endl;
   return 0;
 }
 
