@@ -1,7 +1,67 @@
 #include <iostream>
+#include <vector>
+#include <cassert>
+
+class Worker {
+public:
+  static int m_IDgenerator;
+  Worker(Worker* _parent, int _teamSize) : m_parentID(_parent) { //_parent == nullptr? manager : worker
+//    assert(_parent != 0 && _teamSize == 0);
+    if (_parent == 0 && _teamSize > 0) {
+      m_ID = m_IDgenerator++;
+      m_team.reserve(_teamSize);
+    }
+  };
+  void occupyWorkers() {
+    int cap = m_team.capacity();
+    for (int i = 0; i < cap; ++i) {
+      Worker* worker = new Worker(this, 0);
+      m_team.push_back(worker);
+      std::cout << "Add employer " << worker << std::endl;
+    }
+
+  };
+
+  void getDebugInfo() {
+    std::cout << "Root member: " << this << " with ID " << m_ID << " has " << m_team.size() << " childs" << std::endl;
+    for (const Worker* item : m_team) {
+      std::cout << "Child " << item << " has ID " << item->m_ID << " with parent " << item->m_parentID << std::endl;
+    }
+  }
+
+  ~Worker() {
+    for (auto& item : m_team) {
+      delete item;
+      item = nullptr;
+    }
+  }
+
+private:
+  Worker* m_parentID = nullptr;
+  int m_ID = 0;
+  std::vector<Worker*> m_team;
+};
+
+int Worker::m_IDgenerator = 1;
 
 int main() {
-  //todo
+  std::vector<Worker*> company;
+  std::cout << "Welcome! Enter number of work teams:";
+  int teams = 0;
+  std::cin >> teams;
+  for (int i = 0; i < teams; ++i) {
+    std::cout << "Enter number of workers in team " << i+1 << "/" << teams << ": ";
+    int workers = 0;
+    std::cin >> workers;
+    //init team (equal 'manager')
+    Worker* newWorker = new Worker(nullptr, workers);
+    newWorker->occupyWorkers();
+    company.push_back(newWorker);
+  }
+
+  for (auto& item : company) {
+    item->getDebugInfo();
+  }
   return 0;
 }
 
