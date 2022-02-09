@@ -27,7 +27,6 @@ public:
   void solveTask(TaskType _type) {
     taskType = _type;
   }
-  friend class Manager;
 
 private:
   Manager* m_parentID = nullptr;
@@ -35,12 +34,11 @@ private:
 };
 
 
-class Manager : public Worker {         // no inheritance
+class Manager : public Worker {
 public:
   static int m_IDgenerator;
   Manager() : Worker(this) {
     m_ID = m_IDgenerator++;             // next manager will get unique ID
-        std::cout << "Manager " << m_ID << " created with team size: " << m_workers.size() << std::endl;
   };
 
   void occupyWorkers(int _teamSize) {
@@ -96,7 +94,7 @@ public:
   Director(int _teamsCount)  {
     m_teams.reserve(_teamsCount);
   }
-  bool isEveryoneBusy() {
+  bool isEveryoneBusy() const {
     for (Manager* team : m_teams) {
       if (!team->isBusy()) {
         return false;
@@ -147,7 +145,7 @@ private:
   std::vector<Manager*> m_teams;
 };
 
-int Manager::m_IDgenerator = 1;  //each manager (parent = nullptr) will increase value to get unique ID of Worker exampl
+int Manager::m_IDgenerator = 1;  //each manager will increase value to get unique ID
 
 int main() {
   std::srand(std::time(nullptr));
@@ -160,7 +158,7 @@ int main() {
     std::cout << "Enter number of workers in team " << i+1 << "/" << teamsCount << ": ";
     int workers = 0;
     std::cin >> workers;
-    //init manager with team
+    //init manager, occupy team
     Manager* newManager = new Manager;
     newManager->occupyWorkers(workers);
     newDirector.addTeam(newManager);
